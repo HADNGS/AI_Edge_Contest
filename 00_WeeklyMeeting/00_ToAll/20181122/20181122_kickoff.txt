@@ -1,0 +1,15 @@
+AI contest
+
+１、Project：
+①セグメンテーション
+⇒フレーム：Bonnet
+⇒OS：UBUNTU 16.04　64bit
+⇒開発ツール：python3.5,tensorflow ,ROS(OpenCV,)
+⇒勉強会(金曜日) ⇒ To do(11/30  9:00~)
+⇒Install Bonnet ⇒　To do(11/30 9:00~) 
+
+②Object detection: 
+⇒　フレーム：Yolo
+⇒JetsonTX2 Yolo
+
+
