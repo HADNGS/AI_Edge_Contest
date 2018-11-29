@@ -1004,7 +1004,7 @@ class AbstractNetwork:
     # get dataset reader
     print("Fetching dataset")
     self.parser = imp.load_source("parser",
-                                  os.getcwd() + '/dataset/' +
+                                  r"D:\\Github_Project\\AI_Edge_Contest\\03_Test\\Y_M\\train_py" + r'\\dataset\\' +
                                   self.DATA["name"] + '.py')
 
     # report batch size and gpus to use
@@ -1023,6 +1023,7 @@ class AbstractNetwork:
     assert(self.batch_size % self.n_gpus == 0)
     assert(self.batch_size_gpu > 0)
     print("This means %d images per GPU" % self.batch_size_gpu)
+
 
     # import dataset
     self.dataset = self.parser.read_data_sets(self.DATA)

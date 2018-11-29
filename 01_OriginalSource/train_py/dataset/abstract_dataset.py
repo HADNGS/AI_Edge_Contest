@@ -31,13 +31,18 @@ import random
 class ImgFetcher(threading.Thread):
   def __init__(self, name, dataset):
     threading.Thread.__init__(self)
+    print("_____????")
     self.name = name
     self.dataset = dataset
     self.die = False
     if self.name == "ImgBufftrain":
       # randomize data at the beginning
       combined = list(zip(self.dataset.images, self.dataset.labels))
+      print(combined)
+      print(*combined)
+      print("!!!!")
       random.shuffle(combined)
+      
       self.dataset.images[:], self.dataset.labels[:] = zip(*combined)
 
   def augment(self, img, lbl):

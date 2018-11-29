@@ -219,8 +219,8 @@ def read_data_sets(DATA):
   # get the datasets from the folders
   data_dir = DATA['data_dir']
 
-  directories = ["/train", "/valid", "/test"]
-  types = ["/img", "/lbl"]
+  directories = ["\\train", "\\valid", "\\test"]
+  types = ["\\img", "\\lbl"]
 
   # check that all folders exist:
   for d in directories:

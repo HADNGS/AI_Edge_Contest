@@ -143,9 +143,7 @@ if __name__ == '__main__':
     print(FLAGS.log)
     if tf.gfile.Exists(FLAGS.log):
       tf.gfile.DeleteRecursively(FLAGS.log)
-      print("aaa")
     tf.gfile.MakeDirs(FLAGS.log)
-    print("bbb")
   except:
     print("Error creating log directory. Check permissions! Exiting...")
     quit()
@@ -172,7 +170,7 @@ if __name__ == '__main__':
 
   # get architecture
   architecture = imp.load_source("architecture",
-                                 os.getcwd() + '/arch/' +
+                                 r"D:\\Github_Project\\AI_Edge_Contest\\03_Test\\Y_M\\train_py" + r'\\arch\\' +
                                  NET["name"] + '.py')
 
   # build the network
@@ -182,14 +180,15 @@ if __name__ == '__main__':
   signal.signal(signal.SIGINT, net.cleanup)
   signal.signal(signal.SIGTERM, net.cleanup)
   # signal.pause()
-
+  
   # train
   if FLAGS.path is None:
     print("Training from scratch")
     net.train()
+    
   else:
     print("Training from model in ", str(FLAGS.path + '/' + FLAGS.model))
     net.train(path=str(FLAGS.path + '/' + FLAGS.model))
-
+    
   # clean up
   net.cleanup(None, None)
