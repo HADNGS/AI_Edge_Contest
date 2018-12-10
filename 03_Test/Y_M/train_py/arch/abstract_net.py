@@ -1004,8 +1004,9 @@ class AbstractNetwork:
     # get dataset reader
     print("Fetching dataset")
     self.parser = imp.load_source("parser",
-                                  r"D:\\Github_Project\\AI_Edge_Contest\\03_Test\\Y_M\\train_py" + r'\\dataset\\' +
+                                  r"E:\Github\AI_Edge_Contest\03_Test\Y_M\train_py" + r'\\dataset\\' +
                                   self.DATA["name"] + '.py')
+
 
     # report batch size and gpus to use
     self.batch_size = int(self.TRAIN["batch_size"])
@@ -1016,17 +1017,22 @@ class AbstractNetwork:
     # gpus available
     self.n_gpus_avail = self.gpu_available()
     print("Number of GPU's available is %d" % self.n_gpus_avail)
-    assert(self.n_gpus == self.n_gpus_avail)
+
+    
+
+    #assert(self.n_gpus == self.n_gpus_avail)
 
     # calculate batch size per gpu
-    self.batch_size_gpu = int(self.batch_size / self.n_gpus_avail)
-    assert(self.batch_size % self.n_gpus == 0)
-    assert(self.batch_size_gpu > 0)
-    print("This means %d images per GPU" % self.batch_size_gpu)
+    #self.batch_size_gpu = int(self.batch_size / self.n_gpus_avail)
+    #assert(self.batch_size % self.n_gpus == 0)
+    #assert(self.batch_size_gpu > 0)
+    #print("This means %d images per GPU" % self.batch_size_gpu)
 
 
     # import dataset
     self.dataset = self.parser.read_data_sets(self.DATA)
+
+    input("Press Enter to continue...")
 
     # get learn rate from config file
     with tf.Graph().as_default(), tf.device('/cpu:0'):

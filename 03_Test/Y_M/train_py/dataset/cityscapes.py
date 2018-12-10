@@ -67,11 +67,15 @@ def dir_to_data(directory, label_map, label_remap, new_shape=None, force_remap=F
   label_dir = directory + '/lbl/'
   label_remap_dir = label_dir + '/remap/'
 
+  
+
+
   # get the file list in the folder
   images = [f for f in listdir(img_dir)
             if isfile(join(img_dir, f))]
   labels = [f for f in listdir(label_dir)
             if isfile(join(label_dir, f))]
+
 
   # check if image has a corresponding label, otherwise warn and continue
   for f in images[:]:
@@ -85,12 +89,18 @@ def dir_to_data(directory, label_map, label_remap, new_shape=None, force_remap=F
       n_data += 1
       # calculate class content in the image
       # print("Calculating label content of label %s"%f)
-      l = cv2.imread(label_dir + f, 0)  # open label as grayscale
+
+      l = cv2.imread(label_dir + f, 0)  # open label as grayscale    
+      print(l)
+      input("Press Enter to continue...")
+
       h, w = l.shape
+
       total_pix += h * w  # add to the total count of pixels in images
       # print("Number of pixels in image %s"%(h*w))
       # create histogram
-      hist = cv2.calcHist([l], [0], None, [256], [0, 256])
+      hist = cv2.calcHist([l], [0], None, [256], [0, 256])   
+      
       for key in content_perc:
         # look known class
         content_perc[key] += hist[key]
@@ -111,6 +121,10 @@ def dir_to_data(directory, label_map, label_remap, new_shape=None, force_remap=F
         print("Dropping image %s" % f)
         labels.remove(f)
         images.remove(f)
+
+  print("!!!!!!")
+  print(images)
+  input("Press Enter to continue...")
 
   # loop labels checking rogue labels with no images (magic label from ether)
   for f in labels[:]:
@@ -140,6 +154,9 @@ def dir_to_data(directory, label_map, label_remap, new_shape=None, force_remap=F
 
   # remap all images to jpg and resized to proper size, so that we open faster
   new_images = []
+
+
+
   if not os.path.exists(img_remap_dir):
     print("Jpeg remap non existent, creating...")
     os.makedirs(img_remap_dir)
@@ -154,6 +171,8 @@ def dir_to_data(directory, label_map, label_remap, new_shape=None, force_remap=F
     for f in images:
       f = os.path.splitext(f)[0] + '.jpg'
       new_images.append(f)
+
+
 
   # final percentage calculation
   print("Total number of pixels: %d" % (total_pix))
@@ -177,12 +196,15 @@ def dir_to_data(directory, label_map, label_remap, new_shape=None, force_remap=F
   print(' SPECIFIC TO CITYSCAPES '.center(80, '*'))
 
   # prepend the folder to each file name
+
+
   new_images = [directory + '/img/remap/' + name for name in new_images]
   labels = [directory + '/lbl/remap/' + name for name in labels]
 
   # order to ensure matching (necessary?)
   new_images.sort()
   labels.sort()
+
 
   return new_images, labels, n_data, content_perc
 
@@ -219,6 +241,8 @@ def read_data_sets(DATA):
   # get the datasets from the folders
   data_dir = DATA['data_dir']
 
+  
+
   directories = ["\\train", "\\valid", "\\test"]
   types = ["\\img", "\\lbl"]
 
@@ -252,8 +276,14 @@ def read_data_sets(DATA):
                                                           DATA["label_remap"],
                                                           new_shape=new_shape,
                                                           force_remap=force_remap)
+  
+  print(train_img)
+  input("Press Enter to continue...")
+
   train_data = abs_data.Dataset(train_img, train_lbl, train_n, train_cont,
                                 "train", DATA)
+
+ 
 
   # validation data
   valid_img, valid_lbl, valid_n, valid_cont = dir_to_data(join(data_dir, "valid"),

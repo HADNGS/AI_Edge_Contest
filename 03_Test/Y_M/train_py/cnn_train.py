@@ -37,47 +37,55 @@ import signal
 
 if __name__ == '__main__':
   parser = argparse.ArgumentParser("./cnn_train.py")
-  parser.add_argument(
-      '--data', '-d',
-      type=str,
-      required=False,
-      help='Dataset yaml cfg file. See /cfg for sample. No default!',
-  )
-  parser.add_argument(
-      '--net', '-n',
-      type=str,
-      required=False,
-      help='Network yaml cfg file. See /cfg for sample. No default!',
-  )
-  parser.add_argument(
-      '--train', '-t',
-      type=str,
-      required=False,
-      help='Training hyperparameters yaml cfg file. See /cfg for sample. No default!',
-  )
-  parser.add_argument(
-      '--log', '-l',
-      type=str,
-      default=os.path.expanduser("~") + '/logs/' +
-      "abc" + '/',
-      help='Directory to put the log data. Default: ~/logs/date+time'
-  )
-  parser.add_argument(
-      '--path', '-p',
-      type=str,
-      required=False,
-      default=None,
-      help='Directory to get the model. If not passed, do not retrain!'
-  )
-  model_choices = ['acc', 'iou']
-  parser.add_argument(
-      '--model', '-m',
-      type=str,
-      default='iou',
-      help='Type of model (best acc or best iou). Default to %(default)s',
-      choices=model_choices
-  )
+  #parser.add_argument(
+  #    '--data', '-d',
+  #    type=str,
+  #    required=False,
+  #    help='Dataset yaml cfg file. See /cfg for sample. No default!',
+  #)
+  #parser.add_argument(
+  #    '--net', '-n',
+  #    type=str,
+  #    required=False,
+  #    help='Network yaml cfg file. See /cfg for sample. No default!',
+  #)
+  #parser.add_argument(
+  #    '--train', '-t',
+  #    type=str,
+  #    required=False,
+  #    help='Training hyperparameters yaml cfg file. See /cfg for sample. No default!',
+  #)
+  #parser.add_argument(
+  #    '--log', '-l',
+  #    type=str,
+  #    default=os.path.expanduser("~") + '/logs/' +
+  #    "abc" + '/',
+  #    help='Directory to put the log data. Default: ~/logs/date+time'
+  #)
+  #parser.add_argument(
+  #    '--path', '-p',
+  #    type=str,
+  #    required=False,
+  #    default=None,
+  #    help='Directory to get the model. If not passed, do not retrain!'
+  #)
+  #model_choices = ['acc', 'iou']
+  #parser.add_argument(
+  #    '--model', '-m',
+  #    type=str,
+  #    default='iou',
+  #    help='Type of model (best acc or best iou). Default to %(default)s',
+  #    choices=model_choices
+  #)
+   
   FLAGS, unparsed = parser.parse_known_args()
+
+  FLAGS.data=r"E:\Github\AI_Edge_Contest\03_Test\Y_M\train_py\cfg\cityscapes\data.yaml"
+  FLAGS.net=r"E:\Github\AI_Edge_Contest\03_Test\Y_M\train_py\cfg\cityscapes\net_bonnet.yaml"
+  FLAGS.train=r"E:\Github\AI_Edge_Contest\03_Test\Y_M\train_py\cfg\cityscapes\train_bonnet.yaml"
+  FLAGS.log=r"E:\Github\AI_Edge_Contest\03_Test\Y_M\log\\"
+  FLAGS.path=None
+  FLAGS.model=""
 
   # print summary of what we will do
   print("----------")
@@ -170,7 +178,7 @@ if __name__ == '__main__':
 
   # get architecture
   architecture = imp.load_source("architecture",
-                                 r"D:\\Github_Project\\AI_Edge_Contest\\03_Test\\Y_M\\train_py" + r'\\arch\\' +
+                                 r"E:\Github\AI_Edge_Contest\03_Test\Y_M\train_py" + r'\arch\\' +
                                  NET["name"] + '.py')
 
   # build the network
