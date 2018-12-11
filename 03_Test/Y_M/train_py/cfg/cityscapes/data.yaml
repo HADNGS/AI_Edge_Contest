@@ -6,71 +6,71 @@ buff_nr: 3000         # number of images to keep in fifo (prefetch batch) <-shou
 img_prop:
   width: 1280
   height: 720
-  depth: 1            # number of channels in original image
+  depth: 3            # number of channels in original image
 force_resize: True   # if dataset contains images of different size, it should be True
 force_remap: False
 label_map: 
   64: 'road'
-  179: 'sidewalk'
+  178: 'sidewalk'
   136: 'building'
-  122: 'wall'
+  121: 'wall'
   93: 'fence'
   146: 'pole'
-  226: 'trafficlight'
-  155: 'trafficsign'
-  181: 'vegetation'
-  75: 'terrain'
-  115: 'sky'
+  225: 'trafficlight'
+  154: 'trafficsign'
+  180: 'vegetation'
+  74: 'terrain'
+  114: 'sky'
   76: 'person'
-  70: 'rider'
+  69: 'rider'
   29: 'car'
-  69: 'truck'
+  68: 'truck'
   183: 'bus'
   166: 'train'
-  117: 'motorcycle'
-  150: 'bicycle'
+  116: 'motorcycle'
+  149: 'bicycle'
   82: 'crap'
 label_remap:          # for softmax (it must be an index of the onehot array)
   64: 0
-  179: 1
+  178: 1
   136: 2
-  122: 3
+  121: 3
   93: 4
   146: 5
-  226: 6
-  155: 7
-  181: 8
-  75: 9
-  115: 10
+  225: 6
+  154: 7
+  180: 8
+  74: 9
+  114: 10
   76: 11
-  70: 12
+  69: 12
   29: 13
-  69: 14
+  68: 14
   183: 15
   166: 16
-  117: 17
-  150: 18
+  116: 17
+  149: 18
   82: 19
 color_map: # bgr
   64: [69,47,142]
-  179: [0,255,255]
+  178: [0,255,255]
   136: [0,203,151]
-  122: [92,136,125]
+  121: [92,136,125]
   93: [215,0,255]
   146: [180,131,135]
-  226: [255,255,0]
-  155: [255,134,0]
-  181: [85,255,50]
-  75: [136,45,66]
-  115: [0,152,225]
+  225: [255,255,0]
+  154: [255,134,0]
+  180: [85,255,50]
+  74: [136,45,66]
+  114: [0,152,225]
   76: [255,0,0]
-  70: [86,62,67]
+  69: [86,62,67]
   29: [0,0,255]
-  69: [180,0,129]
+  68: [180,0,129]
   183: [193,214,0]
   166: [255,121,166]
-  117: [65,166,1]
-  150: [208,149,1]
+  116: [65,166,1]
+  149: [208,149,1]
   82: [81,99,0]
 
 # put this in cityscapesScripts/cityScapesscripts/helpers/labels.py:

@@ -77,9 +77,11 @@ def dir_to_data(directory, label_map, label_remap, new_shape=None, force_remap=F
             if isfile(join(label_dir, f))]
 
 
+
   # check if image has a corresponding label, otherwise warn and continue
   for f in images[:]:
-    if f not in labels[:]:
+    #if f not in labels[:]:
+    if f in labels[:]:
       # warn
       print("Image file %s has no label, GIMME DAT LABEL YO! Ignoring..." % f)
       # ignore image
@@ -89,10 +91,11 @@ def dir_to_data(directory, label_map, label_remap, new_shape=None, force_remap=F
       n_data += 1
       # calculate class content in the image
       # print("Calculating label content of label %s"%f)
-
+      
+      ff=f.split(".")
+      f=ff[0] +".png"
       l = cv2.imread(label_dir + f, 0)  # open label as grayscale    
-      print(l)
-      input("Press Enter to continue...")
+
 
       h, w = l.shape
 
@@ -122,23 +125,21 @@ def dir_to_data(directory, label_map, label_remap, new_shape=None, force_remap=F
         labels.remove(f)
         images.remove(f)
 
-  print("!!!!!!")
-  print(images)
-  input("Press Enter to continue...")
-
-  # loop labels checking rogue labels with no images (magic label from ether)
-  for f in labels[:]:
-    if f not in images[:]:
-      # warn
-      print("Label file %s has no image, IS THIS MAGIC?! Ignoring..." % f)
-      # ignore image
-      labels.remove(f)
+  ## loop labels checking rogue labels with no images (magic label from ether)
+  #for f in labels[:]:
+  #  if f not in images[:]:
+  #    # warn
+  #    print("Label file %s has no image, IS THIS MAGIC?! Ignoring..." % f)
+  #    # ignore image
+  #    labels.remove(f)
 
   # remove remap folders to create them again
   if force_remap and os.path.exists(label_remap_dir):
     shutil.rmtree(label_remap_dir)
   if force_remap and os.path.exists(img_remap_dir):
     shutil.rmtree(img_remap_dir)
+  
+
 
   # remap all labels to [0,num_classes], otherwise it breaks the crossentropy
   if not os.path.exists(label_remap_dir):
@@ -191,6 +192,8 @@ def dir_to_data(directory, label_map, label_remap, new_shape=None, force_remap=F
   print("Don't weigh the 'crap' class (key 255)")
   # this is a hack, and needs to be done more elegantly
   content_perc[255] = float("inf")
+  label_map[255]=None
+
   print("Content percentage of class %s in dataset: %f" %
         (label_map[255], content_perc[255]))
   print(' SPECIFIC TO CITYSCAPES '.center(80, '*'))
@@ -204,6 +207,7 @@ def dir_to_data(directory, label_map, label_remap, new_shape=None, force_remap=F
   # order to ensure matching (necessary?)
   new_images.sort()
   labels.sort()
+
 
 
   return new_images, labels, n_data, content_perc

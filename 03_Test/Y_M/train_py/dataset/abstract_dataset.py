@@ -112,8 +112,6 @@ class Dataset:
 
   def __init__(self, images, labels, num_examples, content, name, DATA):
 
-    print(images)
-    input("Press Enter to continue...")
     self.images = images  # name of files, not data!
     self.labels = labels  # name of files, not data!
     self.num_examples = num_examples
