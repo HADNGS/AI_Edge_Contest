@@ -1007,7 +1007,7 @@ class AbstractNetwork:
                                   r"E:\Github\AI_Edge_Contest\03_Test\Y_M\train_py" + r'\\dataset\\' +
                                   self.DATA["name"] + '.py')
 
-
+    input("ffff")
     # report batch size and gpus to use
     self.batch_size = int(self.TRAIN["batch_size"])
     self.n_gpus = int(self.TRAIN['gpus'])

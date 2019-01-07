@@ -191,11 +191,10 @@ def dir_to_data(directory, label_map, label_remap, new_shape=None, force_remap=F
   print(' SPECIFIC TO CITYSCAPES '.center(80, '*'))
   print("Don't weigh the 'crap' class (key 255)")
   # this is a hack, and needs to be done more elegantly
-  content_perc[255] = float("inf")
-  label_map[255]=None
+  content_perc[82] = float("inf")
 
   print("Content percentage of class %s in dataset: %f" %
-        (label_map[255], content_perc[255]))
+        (label_map[82], content_perc[82]))
   print(' SPECIFIC TO CITYSCAPES '.center(80, '*'))
 
   # prepend the folder to each file name
