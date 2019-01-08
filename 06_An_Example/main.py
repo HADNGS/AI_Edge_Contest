@@ -157,8 +157,8 @@ def run():
         # Create function to get batches
         get_batches_fn = helper.gen_batch_function(os.path.join(data_dir, r'data_road\training'), image_shape)
 
-        epochs = 10
-        batch_size = 32
+        epochs = 50
+        batch_size = 16
         correct_label = tf.placeholder(tf.int32, [None, None, None, num_classes])
         learning_rate = tf.placeholder(tf.float32)
 
