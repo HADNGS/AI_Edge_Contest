@@ -4,14 +4,18 @@ import tensorflow as tf
 import helper
 import warnings
 from distutils.version import LooseVersion
-import project_tests as tests
+#import project_tests as tests
 
 
 # Check TensorFlow Version
 assert LooseVersion(tf.__version__) >= LooseVersion('1.0'), 'Please use TensorFlow version 1.0 or newer.  You are using {}'.format(tf.__version__)
 print('TensorFlow Version: {}'.format(tf.__version__))
 
-
+# Check for a GPU
+if not tf.test.gpu_device_name():
+    warnings.warn('No GPU found. Please use a GPU to train your neural network.')
+else:
+    print('Default GPU Device: {}'.format(tf.test.gpu_device_name()))
 
 
 def load_vgg(sess, vgg_path):
@@ -39,7 +43,7 @@ def load_vgg(sess, vgg_path):
     layer7_out = graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
     
     return input_image, keep_prob, layer3_out, layer4_out, layer7_out
-tests.test_load_vgg(load_vgg, tf)
+#tests.test_load_vgg(load_vgg, tf)
 
 
 def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
@@ -84,7 +88,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
                                                kernel_regularizer=tf.contrib.layers.l2_regularizer(1e-3))
     
     return nn_last_layer
-tests.test_layers(layers)
+#tests.test_layers(layers)
 
 
 def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
@@ -105,7 +109,7 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     train_op = optimizer.minimize(cross_entropy_loss)
     
     return logits, train_op, cross_entropy_loss
-tests.test_optimize(optimize)
+#tests.test_optimize(optimize)
 
 
 def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_loss, input_image,
@@ -134,18 +138,19 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
             print("Loss = {:.3f}".format(loss))
     
     pass
-tests.test_train_nn(train_nn)
+#tests.test_train_nn(train_nn)
 
 
 def run():
-    num_classes = 2
-    image_shape = (160, 576)  # KITTI dataset uses 160x576 images
-    data_dir = r'E:\Github\AI_Edge_Contest\06_An_Example\vgg'
-    runs_dir = r'E:\Github\AI_Edge_Contest\06_An_Example\runs'
+    num_classes = 5
+    image_shape = (1216, 1936)  # AI contest dataset uses 1216x1936 images
+    data_dir = './data'
+    vgg_data_dir = '/data'      # this setting is for udacity workspace
+    runs_dir = './runs'
     #tests.test_for_kitti_dataset(data_dir)
 
     # Download pretrained vgg model
-    #helper.maybe_download_pretrained_vgg(data_dir)
+    helper.maybe_download_pretrained_vgg(vgg_data_dir)
 
     # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
     # You'll need a GPU with at least 10 teraFLOPS to train on.
@@ -155,7 +160,7 @@ def run():
         # Path to vgg model
         vgg_path = os.path.join(data_dir, 'vgg')
         # Create function to get batches
-        get_batches_fn = helper.gen_batch_function(os.path.join(data_dir, r'data_road\training'), image_shape)
+        get_batches_fn = helper.gen_batch_function(data_dir, image_shape)
 
         epochs = 50
         batch_size = 16
@@ -181,10 +186,10 @@ def run():
         # OPTIONAL: Apply the trained model to a video
 
         # save model
-        print("Saving Model ...")
-        saver = tf.train.Saver()
-        saver.save(sess, r'E:\Github\AI_Edge_Contest\06_An_Example\saveModel')
-        print("Model saved")
+        #print("Saving Model ...")
+        #saver = tf.train.Saver()
+        #saver.save(sess, './FCN8_Model/fcn8_model')
+        #print("Model saved")
 
 if __name__ == '__main__':
     run()
