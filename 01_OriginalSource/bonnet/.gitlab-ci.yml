@@ -1,0 +1,12 @@
+image: tano297/bonnet:cuda9-cudnn7-tf17-trt304
+
+stages:
+  - build
+
+build:
+  stage: build
+  script:
+  - cp -r /builds/ipb-tools/bonnet /bonnet && ./test.sh
+
+  tags:
+  - docker
