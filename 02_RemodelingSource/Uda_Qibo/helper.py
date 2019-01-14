@@ -17,17 +17,17 @@ import time
 import tensorflow as tf
 from glob import glob
 from urllib.request import urlretrieve
-from tqdm import tqdm
+#from tqdm import tqdm
 from collections import namedtuple
 
 
-class DLProgress(tqdm):
-    last_block = 0
+#class DLProgress(tqdm):
+#    last_block = 0
 
-    def hook(self, block_num=1, block_size=1, total_size=None):
-        self.total = total_size
-        self.update((block_num - self.last_block) * block_size)
-        self.last_block = block_num
+#    def hook(self, block_num=1, block_size=1, total_size=None):
+#        self.total = total_size
+#        self.update((block_num - self.last_block) * block_size)
+#        self.last_block = block_num
 
 
 def maybe_download_pretrained_vgg(data_dir):

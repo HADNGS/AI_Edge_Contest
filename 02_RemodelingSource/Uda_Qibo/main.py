@@ -143,7 +143,7 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 
 def run():
     num_classes = 20
-    image_shape = (160, 320)  # AI contest dataset uses 1216x1936 images
+    image_shape = (256, 512)  # AI contest dataset uses 1216x1936 images
     data_dir = './data'
     vgg_path='./data'
     runs_dir = './runs'
@@ -163,7 +163,7 @@ def run():
         get_batches_fn = helper.gen_batch_function(data_dir, image_shape)
 
         epochs = 10
-        batch_size = 50
+        batch_size = 5
         correct_label = tf.placeholder(tf.int32, [None, None, None, num_classes])
         learning_rate = tf.placeholder(tf.float32)
 
