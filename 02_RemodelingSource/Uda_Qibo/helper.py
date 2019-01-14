@@ -75,7 +75,25 @@ label_defs = [
     Label('car',           (  0,   0, 255)),
     Label('pedestrian',    (255,   0,   0)),
     Label('signal',        (255, 255,   0)),
-    Label('lane',          ( 69,  47, 142))]
+    Label('lane',          ( 69,  47, 142)),
+    
+    #Add
+    Label('sidewalk',      (  0, 255, 255)),
+    Label('building',      (  0, 203, 151)),
+    Label('wall',          ( 92, 136, 125)),
+    Label('fence',         (215,   0, 255)),
+    Label('pole',          (180, 131, 135)),
+    Label('trafficsign',   (255, 134,   0)),
+    Label('vegetation',    ( 85, 255,  50)),
+    Label('terrain',       (136,  45,  66)),
+    Label('sky',           (  0, 152, 225)),
+    Label('rider',         ( 86,  62,  67)),
+    Label('truck',         (180,   0, 129)),
+    Label('bus',           (193, 214,   0)),
+    Label('train',         (255, 121, 166)),
+    Label('motorcycle',    ( 65, 166,   1)),
+    Label('bicycle',       (208, 149,   1))]
+
 label_colors = {i: np.array(l.color) for i, l in enumerate(label_defs)}
 
 def gen_batch_function(data_folder, image_shape):
@@ -95,9 +113,9 @@ def gen_batch_function(data_folder, image_shape):
         label_paths = {
             os.path.basename(path): path
             for path in glob(os.path.join(data_folder, 'seg_train_annotations', '*.png'))}
-        background_color = np.array([255, 0, 0])
 
         random.shuffle(image_paths)
+        
         for batch_i in range(0, len(image_paths), batch_size):
             images = []
             gt_images = []
@@ -147,7 +165,7 @@ def gen_test_output(sess, logits, keep_prob, image_pl, data_folder, image_shape)
         labels_colored = np.zeros([image_shape[0], image_shape[1], 4])
         for label in label_colors:
             label_mask = (im_softmax == label)
-            labels_colored[label_mask] = np.array((*label_colors[label], 127))
+            labels_colored[label_mask] = np.array((*label_colors[label], 255))
 
         mask = scipy.misc.toimage(labels_colored, mode="RGBA")
         street_im = scipy.misc.toimage(image)

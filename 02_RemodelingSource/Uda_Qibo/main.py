@@ -142,15 +142,15 @@ def train_nn(sess, epochs, batch_size, get_batches_fn, train_op, cross_entropy_l
 
 
 def run():
-    num_classes = 5
-    image_shape = (1216, 1936)  # AI contest dataset uses 1216x1936 images
+    num_classes = 20
+    image_shape = (160, 320)  # AI contest dataset uses 1216x1936 images
     data_dir = './data'
-    vgg_data_dir = '/data'      # this setting is for udacity workspace
+    vgg_path='./data'
     runs_dir = './runs'
     #tests.test_for_kitti_dataset(data_dir)
 
     # Download pretrained vgg model
-    helper.maybe_download_pretrained_vgg(vgg_data_dir)
+    #helper.maybe_download_pretrained_vgg(vgg_data_dir)
 
     # OPTIONAL: Train and Inference on the cityscapes dataset instead of the Kitti dataset.
     # You'll need a GPU with at least 10 teraFLOPS to train on.
@@ -162,8 +162,8 @@ def run():
         # Create function to get batches
         get_batches_fn = helper.gen_batch_function(data_dir, image_shape)
 
-        epochs = 50
-        batch_size = 16
+        epochs = 10
+        batch_size = 50
         correct_label = tf.placeholder(tf.int32, [None, None, None, num_classes])
         learning_rate = tf.placeholder(tf.float32)
 
@@ -186,10 +186,10 @@ def run():
         # OPTIONAL: Apply the trained model to a video
 
         # save model
-        #print("Saving Model ...")
-        #saver = tf.train.Saver()
-        #saver.save(sess, './FCN8_Model/fcn8_model')
-        #print("Model saved")
+        print("Saving Model ...")
+        saver = tf.train.Saver()
+        saver.save(sess, './FCN8_Model/fcn8_model')
+        print("Model saved")
 
 if __name__ == '__main__':
     run()
