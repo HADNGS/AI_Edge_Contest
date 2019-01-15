@@ -191,5 +191,35 @@ def run():
         saver.save(sess, './FCN8_Model/fcn8_model')
         print("Model saved")
 
+def OnlyOutput():
+    data_dir = './data'
+    runs_dir = './runs'
+    image_shape = (256, 512)
+    vgg_path='./data'
+    num_classes = 20
+    vgg_path = os.path.join(data_dir, 'vgg')
+
+    config = tf.ConfigProto()
+    config.gpu_options.per_process_gpu_memory_fraction = 0.6
+
+    
+    with tf.Session(config=config) as sess:     
+        correct_label = tf.placeholder(tf.int32, [None, None, None, num_classes])
+        learning_rate = tf.placeholder(tf.float32)
+        input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_vgg(sess, vgg_path)
+        nn_last_layer = layers(layer3_out, layer4_out, layer7_out, num_classes)
+        logits, train_op, cross_entropy_loss = optimize(nn_last_layer, correct_label, learning_rate, num_classes)
+
+        
+
+        saver = tf.train.Saver()
+        saver.restore(sess, './FCN8_Model/fcn8_model')
+
+        helper.save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image)
+
+        
+
+
 if __name__ == '__main__':
     run()
+    #OnlyOutput()
