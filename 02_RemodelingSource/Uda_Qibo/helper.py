@@ -1,11 +1,3 @@
-'''
-You should not edit helper.py as part of your submission.
-
-This file is used primarily to download vgg if it has not yet been,
-give you the progress of the download, get batches for your training,
-as well as around generating and saving the image outputs.
-'''
-
 import re
 import random
 import numpy as np
@@ -19,6 +11,7 @@ from glob import glob
 from urllib.request import urlretrieve
 from tqdm import tqdm
 from collections import namedtuple
+import matplotlib.pyplot as plt
 
 
 class DLProgress(tqdm):
@@ -66,7 +59,7 @@ def maybe_download_pretrained_vgg(data_dir):
         # Remove zip file to save space
         os.remove(os.path.join(vgg_path, vgg_filename))
 
-# num_classes 5
+# num_classes 20
 # background (unlabeled) + 4 classes as per official benchmark
 # cf "The Cityscapes Dataset for Semantic Urban Scene Understanding"
 Label = namedtuple('Label', ['name', 'color'])
@@ -75,10 +68,64 @@ label_defs = [
     Label('car',           (  0,   0, 255)),
     Label('pedestrian',    (255,   0,   0)),
     Label('signal',        (255, 255,   0)),
-    Label('lane',          ( 69,  47, 142))]
+    Label('lane',          ( 69,  47, 142)),
+    #Add
+    Label('sidewalk',      (  0, 255, 255)),
+    Label('building',      (  0, 203, 151)),
+    Label('wall',          ( 92, 136, 125)),
+    Label('fence',         (215,   0, 255)),
+    Label('pole',          (180, 131, 135)),
+    Label('trafficsign',   (255, 134,   0)),
+    Label('vegetation',    ( 85, 255,  50)),
+    Label('terrain',       (136,  45,  66)),
+    Label('sky',           (  0, 152, 225)),
+    Label('rider',         ( 86,  62,  67)),
+    Label('truck',         (180,   0, 129)),
+    Label('bus',           (193, 214,   0)),
+    Label('train',         (255, 121, 166)),
+    Label('motorcycle',    ( 65, 166,   1)),
+    Label('bicycle',       (208, 149,   1))]
+
 label_colors = {i: np.array(l.color) for i, l in enumerate(label_defs)}
 
-def gen_batch_function(data_folder, image_shape):
+
+def load_data(data_folder, train_image_folder, train_gt_folder):
+    # make list of all files
+    image_files = glob(os.path.join(data_folder, train_image_folder, '*.jpg'))
+    file_list = []
+    for f in image_files:
+        image_file_base = os.path.basename(f)
+        gt_file_base = re.sub(r'jpg', 'png', image_file_base)
+        f_gt = os.path.join(data_folder, train_gt_folder, gt_file_base)
+        # check existance of annotation file
+        if os.path.exists(f_gt):
+            file_list.append((f, f_gt))
+                                    
+    # random.shuffle(file_list)
+    # split list into train, validation, test lists
+    train_images = file_list[0:1999]
+    valid_images = file_list[2000:2199]
+    test_images = file_list[2200:]
+    #train_images = file_list[0:70]
+    #valid_images = file_list[71:90]
+    #test_images = file_list[91:]
+    # label & classes
+    num_classes = len(label_defs)
+    #label_colors = {i: np.array(l.color) for i, l in enumerate(label_defs)}
+
+    return train_images, valid_images, test_images, num_classes
+
+
+def bc_img(img, s=1.0, m=0.0):
+    img = img.astype(np.int)
+    img = img * s + m
+    img[img > 255] = 255
+    img[img < 0] = 0
+    img = img.astype(np.uint8)
+    return img
+
+
+def gen_batch_function(image_list, image_shape):
     """
     Generate function to create batches of training data
     :param data_folder: Path to folder that contains all the datasets
@@ -91,29 +138,30 @@ def gen_batch_function(data_folder, image_shape):
         :param batch_size: Batch Size
         :return: Batches of training data
         """
-        image_paths = glob(os.path.join(data_folder, 'seg_train_images', '*.jpg'))
-        label_paths = {
-            os.path.basename(path): path
-            for path in glob(os.path.join(data_folder, 'seg_train_annotations', '*.png'))}
+        random.shuffle(image_list)
         background_color = np.array([255, 0, 0])
 
-        random.shuffle(image_paths)
-        for batch_i in range(0, len(image_paths), batch_size):
+        for batch_i in range(0, len(image_list), batch_size):
             images = []
             gt_images = []
-            for image_file in image_paths[batch_i:batch_i+batch_size]:
-                gt_image_file = label_paths[re.sub(r'jpg', 'png', os.path.basename(image_file))]
-
+            for f in image_list[batch_i:batch_i+batch_size]:
+                # read image and groundtruth files
+                image_file = f[0]
+                gt_file = f[1]
                 image = scipy.misc.imresize(scipy.misc.imread(image_file), image_shape)
-                gt_image = scipy.misc.imresize(scipy.misc.imread(gt_image_file), image_shape)
+                gt_image = scipy.misc.imresize(scipy.misc.imread(gt_file), image_shape)
 
+                # add random noises
+                contrast = random.uniform(0.85, 1.15)  # Contrast augmentation
+                bright = random.randint(-45, 30)  # Brightness augmentation
+                image = bc_img(image, contrast, bright)
+                
                 gt_bg = np.zeros([image_shape[0], image_shape[1]], dtype=bool)
                 gt_list = []
                 for ldef in label_defs[1:]:
                     gt_current = np.all(gt_image == np.array(ldef.color), axis=2)
                     gt_bg |= gt_current
                     gt_list.append(gt_current)
-
                 gt_bg = ~gt_bg
                 gt_all = np.dstack([gt_bg, *gt_list])
                 gt_all = gt_all.astype(np.float32)
@@ -125,7 +173,7 @@ def gen_batch_function(data_folder, image_shape):
     return get_batches_fn
 
 
-def gen_test_output(sess, logits, keep_prob, image_pl, data_folder, image_shape):
+def gen_test_output(sess, logits, keep_prob, image_pl, image_files, image_shape):
     """
     Generate test output using the test images
     :param sess: TF session
@@ -136,15 +184,16 @@ def gen_test_output(sess, logits, keep_prob, image_pl, data_folder, image_shape)
     :param image_shape: Tuple - Shape of image
     :return: Output for for each test image
     """
-    for image_file in glob(os.path.join(data_folder, 'seg_test_images', '*.jpg')):
+    for image_file in image_files:
         image = scipy.misc.imresize(scipy.misc.imread(image_file), image_shape)
 
         im_softmax = sess.run(
             [tf.argmax(tf.nn.softmax(logits), axis=-1)],
             {keep_prob: 1.0, image_pl: [image]})
-        
+
         im_softmax = im_softmax[0].reshape(image_shape[0], image_shape[1])
         labels_colored = np.zeros([image_shape[0], image_shape[1], 4])
+
         for label in label_colors:
             label_mask = (im_softmax == label)
             labels_colored[label_mask] = np.array((*label_colors[label], 127))
@@ -156,7 +205,7 @@ def gen_test_output(sess, logits, keep_prob, image_pl, data_folder, image_shape)
         yield os.path.basename(image_file), np.array(street_im)
 
 
-def save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_prob, input_image):
+def save_inference_samples(runs_dir, image_files, sess, image_shape, logits, keep_prob, input_image):
     # Make folder for current run
     output_dir = os.path.join(runs_dir, str(time.time()))
     if os.path.exists(output_dir):
@@ -165,7 +214,21 @@ def save_inference_samples(runs_dir, data_dir, sess, image_shape, logits, keep_p
 
     # Run NN on test images and save them to HD
     print('Training Finished. Saving test images to: {}'.format(output_dir))
-    image_outputs = gen_test_output(
-        sess, logits, keep_prob, input_image, data_dir, image_shape)
+    image_outputs = gen_test_output(sess, logits, keep_prob, input_image, image_files, image_shape)
     for name, image in image_outputs:
         scipy.misc.imsave(os.path.join(output_dir, name), image)
+
+
+def plot_loss(runs_dir, loss, folder_name):
+    _, axes = plt.subplots()
+    plt.plot(range(0, len(loss)), loss)
+    plt.title('Cross-entropy loss')
+    plt.xlabel('Epoch')
+    plt.ylabel('Loss')
+    plt.grid()
+    if not os.path.exists(runs_dir):
+        #shutil.rmtree(runs_dir)
+        os.makedirs(runs_dir)
+
+    output_file = os.path.join(runs_dir, folder_name + ".png")
+    plt.savefig(output_file)
