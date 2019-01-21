@@ -59,7 +59,7 @@ def maybe_download_pretrained_vgg(data_dir):
         # Remove zip file to save space
         os.remove(os.path.join(vgg_path, vgg_filename))
 
-# num_classes 20
+# num_classes 5
 # background (unlabeled) + 4 classes as per official benchmark
 # cf "The Cityscapes Dataset for Semantic Urban Scene Understanding"
 Label = namedtuple('Label', ['name', 'color'])
@@ -68,23 +68,7 @@ label_defs = [
     Label('car',           (  0,   0, 255)),
     Label('pedestrian',    (255,   0,   0)),
     Label('signal',        (255, 255,   0)),
-    Label('lane',          ( 69,  47, 142)),
-    #Add
-    Label('sidewalk',      (  0, 255, 255)),
-    Label('building',      (  0, 203, 151)),
-    Label('wall',          ( 92, 136, 125)),
-    Label('fence',         (215,   0, 255)),
-    Label('pole',          (180, 131, 135)),
-    Label('trafficsign',   (255, 134,   0)),
-    Label('vegetation',    ( 85, 255,  50)),
-    Label('terrain',       (136,  45,  66)),
-    Label('sky',           (  0, 152, 225)),
-    Label('rider',         ( 86,  62,  67)),
-    Label('truck',         (180,   0, 129)),
-    Label('bus',           (193, 214,   0)),
-    Label('train',         (255, 121, 166)),
-    Label('motorcycle',    ( 65, 166,   1)),
-    Label('bicycle',       (208, 149,   1))]
+    Label('lane',          ( 69,  47, 142))]
 
 label_colors = {i: np.array(l.color) for i, l in enumerate(label_defs)}
 
@@ -104,8 +88,8 @@ def load_data(data_folder, train_image_folder, train_gt_folder):
     # random.shuffle(file_list)
     # split list into train, validation, test lists
     train_images = file_list[0:1999]
-    valid_images = file_list[2000:2199]
-    test_images = file_list[2200:]
+    valid_images = file_list[2000:]
+    test_images = []#file_list[2200:]
     #train_images = file_list[0:70]
     #valid_images = file_list[71:90]
     #test_images = file_list[91:]
