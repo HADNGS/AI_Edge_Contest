@@ -163,7 +163,7 @@ def run():
         get_batches_fn = helper.gen_batch_function(data_dir, image_shape)
 
         epochs = 10
-        batch_size = 5
+        batch_size = 2
         correct_label = tf.placeholder(tf.int32, [None, None, None, num_classes])
         learning_rate = tf.placeholder(tf.float32)
 
