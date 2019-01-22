@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
+import re
 import os.path
 import tensorflow as tf
-import helper
 import warnings
 import math
+import time
+import scipy.misc
+import numpy as np
 from glob import glob
 from tqdm import tqdm
+from collections import namedtuple
 from distutils.version import LooseVersion
 #import project_tests as tests
 
@@ -37,10 +41,41 @@ TEST_SUBDIR = 'seg_test_images'
 FL_UDA_SEV = 1
 VGG_DIR = './data'      # this setting is for udacity workspace
 
-EPOCHS = 40
+EPOCHS = 30
 BATCH_SIZE = 16
 IMAGE_SHAPE = (320, 480)    # AI contest dataset uses 1216x1936 images
+IMAGE_SHAPE_ORIGIN = (1216, 1936)
 FL_resume = True
+num_classes = 20
+
+# num_classes 20
+# background (unlabeled) + 4 classes as per official benchmark
+# cf "The Cityscapes Dataset for Semantic Urban Scene Understanding"
+Label = namedtuple('Label', ['name', 'color'])
+label_defs = [
+    Label('undefined',     (  0,   0,   0)),
+    Label('car',           (  0,   0, 255)),
+    Label('pedestrian',    (255,   0,   0)),
+    Label('signal',        (255, 255,   0)),
+    Label('lane',          ( 69,  47, 142)),
+    #Add
+    Label('sidewalk',      (  0, 255, 255)),
+    Label('building',      (  0, 203, 151)),
+    Label('wall',          ( 92, 136, 125)),
+    Label('fence',         (215,   0, 255)),
+    Label('pole',          (180, 131, 135)),
+    Label('trafficsign',   (255, 134,   0)),
+    Label('vegetation',    ( 85, 255,  50)),
+    Label('terrain',       (136,  45,  66)),
+    Label('sky',           (  0, 152, 225)),
+    Label('rider',         ( 86,  62,  67)),
+    Label('truck',         (180,   0, 129)),
+    Label('bus',           (193, 214,   0)),
+    Label('train',         (255, 121, 166)),
+    Label('motorcycle',    ( 65, 166,   1)),
+    Label('bicycle',       (208, 149,   1))]
+
+label_colors = {i: np.array(l.color) for i, l in enumerate(label_defs)}
 
 
 def load_vgg(sess, vgg_path):
@@ -162,128 +197,66 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
 #tests.test_optimize(optimize)
 
 
-def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_valid_batches_fn, train_op, cross_entropy_loss,
-             input_image, correct_label, keep_prob, learning_rate, iou, iou_op, saver, n_train, n_valid, lr):
+def gen_test_output(sess, logits, keep_prob, image_pl, image_files, image_shape):
     """
-    Train neural network and print out the loss during training.
-    :param sess: TF Session
-    :param epochs: Number of epochs
-    :param batch_size: Batch size
-    :param get_batches_fn: Function to get batches of training data.  Call using get_batches_fn(batch_size)
-    :param train_op: TF Operation to train the neural network
-    :param cross_entropy_loss: TF Tensor for the amount of loss
-    :param input_image: TF Placeholder for input images
-    :param correct_label: TF Placeholder for label images
-    :param keep_prob: TF Placeholder for dropout keep probability
-    :param learning_rate: TF Placeholder for learning rate
+    Generate test output using the test images
+    :param sess: TF session
+    :param logits: TF Tensor for the logits
+    :param keep_prob: TF Placeholder for the dropout keep robability
+    :param image_pl: TF Placeholder for the image placeholder
+    :param data_folder: Path to the folder that contains the datasets
+    :param image_shape: Tuple - Shape of image
+    :return: Output for for each test image
     """
-    print("Start training with lr {} ...".format(lr))
-    best_iou = 0
-    for epoch in range(epochs):
-        # train process
-        generator = get_train_batches_fn(batch_size)
-        description = "Train Epoch {:>2}/{}".format(epoch+1,epochs)
-        #print(description)
-        start = timer()
-        losses = []
-        ious = []
-        #for image, label in get_train_batches_fn(batch_size):
-        for image, label in tqdm(generator, total=n_train, desc=description, unit='batches'):
-            _, loss, _ = sess.run([train_op, cross_entropy_loss, iou_op],
-                               feed_dict={input_image: image, correct_label: label,
-                                          keep_prob: KEEP_PROB, learning_rate: lr})
-            print("Loss = {:.3f}".format(loss))
-            losses.append(loss)
-            ious.append(sess.run(iou))
-        end = timer()
-        # save figure of loss
-        #helper.plot_loss(RUNS_DIR, losses, "loss_graph_training")
-        print("EPOCH {} with lr {} ...".format(epoch + 1, lr))
-        print("  time {} ...".format(end - start))
-        print("  Train Xentloss = {:.4f}".format(sum(losses) / len(losses)))
-        print("  Train IOU = {:.4f}".format(sum(ious) / len(ious)))
+    for image_file in image_files:
+        image = scipy.misc.imresize(scipy.misc.imread(image_file), image_shape)
 
-        # validation process
-        generator = get_valid_batches_fn(batch_size)
-        description = "Valid Epoch {:>2}/{}".format(epoch+1,epochs)
-        #print(description)
-        start = timer()
-        losses = []
-        ious = []
-        #for image, label in get_valid_batches_fn(batch_size):
-        for image, label in tqdm(generator, total=n_valid, desc=description, unit='batches'):
-            loss, _ = sess.run([cross_entropy_loss, iou_op],
-                               feed_dict={input_image: image, correct_label: label, keep_prob: 1})
-            print("Loss = {:.3f}".format(loss))
-            losses.append(loss)
-            ious.append(sess.run(iou))
-        end = timer()
-        # save figure of loss
-        #helper.plot_loss(RUNS_DIR, losses, "loss_graph_validating")
-        print("  time {} ...".format(end - start))
-        print("  Valid Xentloss = {:.4f}".format(sum(losses) / len(losses)))
-        valid_iou = sum(ious) / len(ious)
-        print("  Valid IOU = {:.4f}".format(valid_iou))
+        im_softmax = sess.run(
+            [tf.argmax(tf.nn.softmax(logits), axis=-1)],
+            {keep_prob: 1.0, image_pl: [image]})
 
-        # check the result
-        if (valid_iou > best_iou):
-            saver.save(sess, os.path.join(MODELS, 'fcn8s'))
-            #saver.save(sess, os.path.join(MODELS, 'fcn8s.ckpt'))
-            with open(os.path.join(MODELS, 'training.txt'), "w") as text_file:
-                text_file.write("models/fcn8s: epoch {}, lr {}, valid_iou {}".format(epoch + 1, lr, valid_iou))
-            print("  model saved")
-            best_iou = valid_iou
-        else:
-            lr *= 0.5  # lr scheduling: halving on failure
-            print("  no improvement => lr downscaled to {} ...".format(lr))
-    pass
-#tests.test_train_nn(train_nn)
+        im_softmax = im_softmax[0].reshape(image_shape[0], image_shape[1])
+        labels_colored = np.zeros([image_shape[0], image_shape[1], 3])
+
+        for label in label_colors:
+            label_mask = (im_softmax == label)
+            labels_colored[label_mask] = np.array(label_colors[label])
+
+        img = scipy.misc.imresize(labels_colored, IMAGE_SHAPE_ORIGIN, interp='nearest')
+        street_im = scipy.misc.toimage(img, mode="RGB", cmin=0, cmax=255)
+        #street_im = scipy.misc.toimage(image)
+        #street_im.paste(mask, box=None, mask=mask)
+
+        yield re.sub(r'jpg', 'png', os.path.basename(image_file)), street_im
 
 
-def test_nn(sess, batch_size, get_test_batches_fn, predictions_argmax, input_image, correct_label, keep_prob, iou,
-            iou_op, n_batches):
-    generator = get_test_batches_fn(batch_size)
-    description = "Test Process"
-    #print(description)
-    ious = []
-    #for image, label in get_test_batches_fn(batch_size):
-    for image, label in tqdm(generator, total=n_batches, unit='batches'):
-        labels, _ = sess.run([predictions_argmax, iou_op],
-                            feed_dict={input_image: image, correct_label: label, keep_prob: 1})
-        ious.append(sess.run(iou))
-    print("  Test IOU = {:.4f}".format(sum(ious) / len(ious)))
+def save_inference_samples(runs_dir, image_files, sess, image_shape, logits, keep_prob, input_image):
+    # Make folder for current run
+    output_dir = os.path.join(runs_dir, str(time.time()))
+    if os.path.exists(output_dir):
+        shutil.rmtree(output_dir)
+    os.makedirs(output_dir)
+
+    # Run NN on test images and save them to HD
+    print('Training Finished. Saving test images to: {}'.format(output_dir))
+    image_outputs = gen_test_output(sess, logits, keep_prob, input_image, image_files, image_shape)
+    for name, image in image_outputs:
+        #scipy.misc.imsave(os.path.join(output_dir, name), image)
+        image.save(os.path.join(output_dir, name))
 
 
 def run():
-    #tests.test_for_kitti_dataset(data_dir)
-
-    # Download pretrained vgg model
-    helper.maybe_download_pretrained_vgg(VGG_DIR)
-
     # Path to vgg model
     vgg_path = os.path.join(VGG_DIR, 'vgg')
-    # prepare images (train, valid, test)
-    train_images, valid_images, test_images, num_classes = helper.load_data(DATA_DIR, TRAIN_SUBDIR, TRAIN_GT_SUBDIR)
-    print("len: train_images {}, valid_images {}, test_images {}".format(len(train_images), len(valid_images), len(test_images)))
-
-    # Create function to get batches
-    get_train_batches_fn = helper.gen_batch_function(train_images, IMAGE_SHAPE)
-    get_valid_batches_fn = helper.gen_batch_function(valid_images, IMAGE_SHAPE)
-    get_test_batches_fn = helper.gen_batch_function(test_images, IMAGE_SHAPE)
 
     correct_label = tf.placeholder(tf.int32, [None, IMAGE_SHAPE[0], IMAGE_SHAPE[1], num_classes])
     learning_rate = tf.placeholder(tf.float32)
-    # learning rate
-    lr = LEARNING_RATE
             
     with tf.Session() as sess:
         # Build NN using load_vgg, layers, and optimize function
         input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_vgg(sess, vgg_path)
         nn_last_layer = layers(layer3_out, layer4_out, layer7_out, num_classes)
         logits, train_op, cross_entropy_loss = optimize(nn_last_layer, correct_label, learning_rate, num_classes)
-
-        softmax_output, predictions_argmax = build_predictor(nn_last_layer)
-        iou, iou_op = build_metrics(correct_label, predictions_argmax, num_classes)
 
         # WARNING run those initializer _BEFORE_ restore
         sess.run(tf.global_variables_initializer())
@@ -294,40 +267,12 @@ def run():
         if FL_resume:
             saver.restore(sess, tf.train.latest_checkpoint(MODELS))
             print("resume")
-            
-        # Train NN using the train_nn function
-        n_train = int(math.ceil(len(train_images) / BATCH_SIZE))
-        n_valid = int(math.ceil(len(valid_images) / BATCH_SIZE))
-        train_nn(sess, EPOCHS, BATCH_SIZE, get_train_batches_fn, get_valid_batches_fn, train_op, cross_entropy_loss,
-                 input_image, correct_label, keep_prob, learning_rate, iou, iou_op, saver, n_train, n_valid, lr)
-
-        # Test process
-        #n_batches = int(math.ceil(len(test_images) / BATCH_SIZE))
-        # batch_size 32 is ok (and faster) with GTX 1080 TI and 11 GB memory
-        #test_nn(sess, 32, get_test_batches_fn, predictions_argmax, input_image,
- #               correct_label, keep_prob, iou, iou_op, n_batches)
-        
-        if FL_resume:  # resume training from saved params
-            saver.restore(sess, tf.train.latest_checkpoint(MODELS))
-            print("resume")
 
         # Save inference data using helper.save_inference_samples
         inference_images = glob(os.path.join(DATA_DIR, TEST_SUBDIR, '*.jpg'))
-        helper.save_inference_samples(RUNS_DIR, inference_images, sess, IMAGE_SHAPE, logits, keep_prob, input_image)
+        #inference_images = ['./data/seg_test_images/test_009.jpg', './data/seg_test_images/test_010.jpg']
+        save_inference_samples(RUNS_DIR, inference_images, sess, IMAGE_SHAPE, logits, keep_prob, input_image)
 
-        # save model
-        output_node_names = 'Softmax'
-        output_graph_def = tf.graph_util.convert_variables_to_constants(
-            sess,  # The session is used to retrieve the weights
-            tf.get_default_graph().as_graph_def(),  # The graph_def is used to retrieve the nodes
-            output_node_names.split(",")  # The output node names are used to select the usefull nodes
-        )
-
-        saver.save(sess, os.path.join(MODELS, 'optimized', 'fcn8s.ckpt'))
-        tf.train.write_graph(tf.get_default_graph().as_graph_def(), '',  os.path.join(MODELS, 'optimized', 'base_graph.pb'), False)
-        tf.train.write_graph(output_graph_def, '', os.path.join(MODELS, 'optimized' 'frozen_graph.pb'), False)
-        print("{} ops in the final graph.".format(len(output_graph_def.node)))
 
 if __name__ == '__main__':
     run()
-    #OnlyOutput()
