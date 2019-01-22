@@ -9,55 +9,8 @@ import time
 import tensorflow as tf
 from glob import glob
 from urllib.request import urlretrieve
-#from tqdm import tqdm
 from collections import namedtuple
 import matplotlib.pyplot as plt
-
-
-#class DLProgress(tqdm):
-#    last_block = 0
-
-#    def hook(self, block_num=1, block_size=1, total_size=None):
-#        self.total = total_size
-#        self.update((block_num - self.last_block) * block_size)
-#        self.last_block = block_num
-
-
-def maybe_download_pretrained_vgg(data_dir):
-    """
-    Download and extract pretrained vgg model if it doesn't exist
-    :param data_dir: Directory to download the model to
-    """
-    vgg_filename = 'vgg.zip'
-    vgg_path = os.path.join(data_dir, 'vgg')
-    vgg_files = [
-        os.path.join(vgg_path, 'variables/variables.data-00000-of-00001'),
-        os.path.join(vgg_path, 'variables/variables.index'),
-        os.path.join(vgg_path, 'saved_model.pb')]
-
-    missing_vgg_files = [vgg_file for vgg_file in vgg_files if not os.path.exists(vgg_file)]
-    if missing_vgg_files:
-        # Clean vgg dir
-        if os.path.exists(vgg_path):
-            shutil.rmtree(vgg_path)
-        os.makedirs(vgg_path)
-
-        # Download vgg
-        print('Downloading pre-trained vgg model...')
-        with DLProgress(unit='B', unit_scale=True, miniters=1) as pbar:
-            urlretrieve(
-                'https://s3-us-west-1.amazonaws.com/udacity-selfdrivingcar/vgg.zip',
-                os.path.join(vgg_path, vgg_filename),
-                pbar.hook)
-
-        # Extract vgg
-        print('Extracting model...')
-        zip_ref = zipfile.ZipFile(os.path.join(vgg_path, vgg_filename), 'r')
-        zip_ref.extractall(data_dir)
-        zip_ref.close()
-
-        # Remove zip file to save space
-        os.remove(os.path.join(vgg_path, vgg_filename))
 
 # num_classes 5
 # background (unlabeled) + 4 classes as per official benchmark
@@ -73,31 +26,39 @@ label_defs = [
 label_colors = {i: np.array(l.color) for i, l in enumerate(label_defs)}
 
 
-def load_data(data_folder, train_image_folder, train_gt_folder):
-    # make list of all files
-    image_files = glob(os.path.join(data_folder, train_image_folder, '*.jpg'))
+def build_file_list(images_root, labels_root, sample_name):
+    image_sample_root = images_root + sample_name
+    image_root_len = len(image_sample_root)
+    label_sample_root = labels_root + sample_name
+
+    image_files = glob(image_sample_root + '/*jpg')
     file_list = []
+
     for f in image_files:
         image_file_base = os.path.basename(f)
         gt_file_base = re.sub(r'jpg', 'png', image_file_base)
-        f_gt = os.path.join(data_folder, train_gt_folder, gt_file_base)
-        # check existance of annotation file
+        f_gt = os.path.join(label_sample_root, gt_file_base)
         if os.path.exists(f_gt):
             file_list.append((f, f_gt))
-                                    
-    # random.shuffle(file_list)
-    # split list into train, validation, test lists
-    train_images = file_list[0:1999]
-    valid_images = file_list[2000:]
-    test_images = []#file_list[2200:]
-    #train_images = file_list[0:70]
-    #valid_images = file_list[71:90]
-    #test_images = file_list[91:]
-    # label & classes
+
+    return file_list
+
+
+def load_data(data_folder):
+    # make list of all files
+    images_root = data_folder + '/seg_images_'
+    labels_root = data_folder + '/seg_annotations_'
+
+    train_images = build_file_list(images_root, labels_root, 'train')
+    valid_images = build_file_list(images_root, labels_root, 'val')
+    test_images = build_file_list(images_root, labels_root, 'test')
+    
     num_classes = len(label_defs)
-    #label_colors = {i: np.array(l.color) for i, l in enumerate(label_defs)}
+
 
     return train_images, valid_images, test_images, num_classes
+
+
 
 
 def bc_img(img, s=1.0, m=0.0):

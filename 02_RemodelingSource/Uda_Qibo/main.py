@@ -5,16 +5,8 @@ import helper
 import warnings
 import math
 from glob import glob
-from tqdm import tqdm
-from distutils.version import LooseVersion
-#import project_tests as tests
 
 from timeit import default_timer as timer
-
-
-# Check TensorFlow Version
-assert LooseVersion(tf.__version__) >= LooseVersion('1.0'), 'Please use TensorFlow version 1.0 or newer.  You are using {}'.format(tf.__version__)
-print('TensorFlow Version: {}'.format(tf.__version__))
 
 # Check for a GPU
 if not tf.test.gpu_device_name():
@@ -30,15 +22,14 @@ LEARNING_RATE = 5e-4
 
 DATA_DIR = './data'
 RUNS_DIR = './runs'
-MODELS = './models'
-TRAIN_SUBDIR = 'seg_train_images'
-TRAIN_GT_SUBDIR = 'seg_train_annotations'
-TEST_SUBDIR = 'seg_test_images'
-FL_UDA_SEV = 1
+MODELS = './FCN8_Model'
+TRAIN_SUBDIR = 'seg_images_train'
+TRAIN_GT_SUBDIR = 'seg_annotations_train'
+TEST_SUBDIR = 'seg_images_test'
 VGG_DIR = './data'      # this setting is for udacity workspace
 
-EPOCHS = 40
-BATCH_SIZE = 16
+EPOCHS = 2
+BATCH_SIZE = 10
 IMAGE_SHAPE = (320, 480)    # AI contest dataset uses 1216x1936 images
 FL_resume = True
 
@@ -70,7 +61,7 @@ def load_vgg(sess, vgg_path):
     layer7_out = graph.get_tensor_by_name(vgg_layer7_out_tensor_name)
     
     return input_image, keep_prob, layer3_out, layer4_out, layer7_out
-#tests.test_load_vgg(load_vgg, tf)
+
 
 
 def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
@@ -120,7 +111,7 @@ def layers(vgg_layer3_out, vgg_layer4_out, vgg_layer7_out, num_classes):
                                                kernel_regularizer=tf.contrib.layers.l2_regularizer(L2_REG))
     
     return nn_last_layer
-#tests.test_layers(layers)
+
 
 
 def build_predictor(nn_last_layer):
@@ -129,10 +120,12 @@ def build_predictor(nn_last_layer):
     return softmax_output, predictions_argmax
 
 
+
 def build_metrics(correct_label, predictions_argmax, num_classes):
     labels_argmax = tf.argmax(correct_label, axis=-1)
     iou, iou_op = tf.metrics.mean_iou(labels_argmax, predictions_argmax, num_classes)
     return iou, iou_op
+
 
 
 def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
@@ -146,7 +139,7 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     """
     logits = tf.reshape(nn_last_layer, (-1, num_classes))
     labels = tf.reshape(correct_label, (-1, num_classes))
-    cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = logits, labels = labels))
+    cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits = logits, labels = labels))
 
     # loss function of weight
     regularization_loss = tf.add_n(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)) # Scalar
@@ -159,7 +152,7 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     train_op = optimizer.minimize(cross_entropy_loss)
     
     return logits, train_op, cross_entropy_loss
-#tests.test_optimize(optimize)
+
 
 
 def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_valid_batches_fn, train_op, cross_entropy_loss,
@@ -181,20 +174,21 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_valid_batches_f
     best_iou = 0
     for epoch in range(epochs):
         # train process
-        generator = get_train_batches_fn(batch_size)
-        description = "Train Epoch {:>2}/{}".format(epoch+1,epochs)
-        #print(description)
         start = timer()
         losses = []
         ious = []
-        #for image, label in get_train_batches_fn(batch_size):
-        for image, label in tqdm(generator, total=n_train, desc=description, unit='batches'):
+
+        description = "Train Epoch {:>2}/{}".format(epoch+1,epochs)
+        print(description)
+
+        for image, label in get_train_batches_fn(batch_size):
             _, loss, _ = sess.run([train_op, cross_entropy_loss, iou_op],
-                               feed_dict={input_image: image, correct_label: label,
-                                          keep_prob: KEEP_PROB, learning_rate: lr})
+                                feed_dict={input_image: image, correct_label: label,
+                                            keep_prob: KEEP_PROB, learning_rate: lr})
             print("Loss = {:.3f}".format(loss))
             losses.append(loss)
             ious.append(sess.run(iou))
+
         end = timer()
         # save figure of loss
         #helper.plot_loss(RUNS_DIR, losses, "loss_graph_training")
@@ -203,17 +197,15 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_valid_batches_f
         print("  Train Xentloss = {:.4f}".format(sum(losses) / len(losses)))
         print("  Train IOU = {:.4f}".format(sum(ious) / len(ious)))
 
+
         # validation process
-        generator = get_valid_batches_fn(batch_size)
-        description = "Valid Epoch {:>2}/{}".format(epoch+1,epochs)
-        #print(description)
         start = timer()
         losses = []
         ious = []
-        #for image, label in get_valid_batches_fn(batch_size):
-        for image, label in tqdm(generator, total=n_valid, desc=description, unit='batches'):
+
+        for image, label in get_valid_batches_fn(batch_size):
             loss, _ = sess.run([cross_entropy_loss, iou_op],
-                               feed_dict={input_image: image, correct_label: label, keep_prob: 1})
+                                feed_dict={input_image: image, correct_label: label, keep_prob: 1})
             print("Loss = {:.3f}".format(loss))
             losses.append(loss)
             ious.append(sess.run(iou))
@@ -224,6 +216,7 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_valid_batches_f
         print("  Valid Xentloss = {:.4f}".format(sum(losses) / len(losses)))
         valid_iou = sum(ious) / len(ious)
         print("  Valid IOU = {:.4f}".format(valid_iou))
+
 
         # check the result
         if (valid_iou > best_iou):
@@ -237,17 +230,13 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_valid_batches_f
             lr *= 0.5  # lr scheduling: halving on failure
             print("  no improvement => lr downscaled to {} ...".format(lr))
     pass
-#tests.test_train_nn(train_nn)
+
 
 
 def test_nn(sess, batch_size, get_test_batches_fn, predictions_argmax, input_image, correct_label, keep_prob, iou,
             iou_op, n_batches):
-    generator = get_test_batches_fn(batch_size)
-    description = "Test Process"
-    #print(description)
     ious = []
-    #for image, label in get_test_batches_fn(batch_size):
-    for image, label in tqdm(generator, total=n_batches, unit='batches'):
+    for image, label in get_test_batches_fn(batch_size):
         labels, _ = sess.run([predictions_argmax, iou_op],
                             feed_dict={input_image: image, correct_label: label, keep_prob: 1})
         ious.append(sess.run(iou))
@@ -255,15 +244,10 @@ def test_nn(sess, batch_size, get_test_batches_fn, predictions_argmax, input_ima
 
 
 def run():
-    #tests.test_for_kitti_dataset(data_dir)
-
-    # Download pretrained vgg model
-    helper.maybe_download_pretrained_vgg(VGG_DIR)
-
     # Path to vgg model
     vgg_path = os.path.join(VGG_DIR, 'vgg')
     # prepare images (train, valid, test)
-    train_images, valid_images, test_images, num_classes = helper.load_data(DATA_DIR, TRAIN_SUBDIR, TRAIN_GT_SUBDIR)
+    train_images, valid_images, test_images, num_classes = helper.load_data(DATA_DIR)
     print("len: train_images {}, valid_images {}, test_images {}".format(len(train_images), len(valid_images), len(test_images)))
 
     # Create function to get batches
@@ -305,11 +289,8 @@ def run():
         #n_batches = int(math.ceil(len(test_images) / BATCH_SIZE))
         # batch_size 32 is ok (and faster) with GTX 1080 TI and 11 GB memory
         #test_nn(sess, 32, get_test_batches_fn, predictions_argmax, input_image,
- #               correct_label, keep_prob, iou, iou_op, n_batches)
-        
-        if FL_resume:  # resume training from saved params
-            saver.restore(sess, tf.train.latest_checkpoint(MODELS))
-            print("resume")
+        #       correct_label, keep_prob, iou, iou_op, n_batches)
+
 
         # Save inference data using helper.save_inference_samples
         inference_images = glob(os.path.join(DATA_DIR, TEST_SUBDIR, '*.jpg'))
