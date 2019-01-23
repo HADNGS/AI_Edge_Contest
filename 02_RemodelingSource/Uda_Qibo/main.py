@@ -28,10 +28,10 @@ TRAIN_GT_SUBDIR = 'seg_annotations_train'
 TEST_SUBDIR = 'seg_images_test'
 VGG_DIR = './data'      # this setting is for udacity workspace
 
-EPOCHS = 2
+EPOCHS = 1
 BATCH_SIZE = 10
 IMAGE_SHAPE = (320, 480)    # AI contest dataset uses 1216x1936 images
-FL_resume = True
+FL_resume = False
 
 
 def load_vgg(sess, vgg_path):
@@ -139,7 +139,7 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
     """
     logits = tf.reshape(nn_last_layer, (-1, num_classes))
     labels = tf.reshape(correct_label, (-1, num_classes))
-    cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits_v2(logits = logits, labels = labels))
+    cross_entropy_loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits(logits = logits, labels = labels))
 
     # loss function of weight
     regularization_loss = tf.add_n(tf.get_collection(tf.GraphKeys.REGULARIZATION_LOSSES)) # Scalar
@@ -246,6 +246,7 @@ def test_nn(sess, batch_size, get_test_batches_fn, predictions_argmax, input_ima
 def run():
     # Path to vgg model
     vgg_path = os.path.join(VGG_DIR, 'vgg')
+
     # prepare images (train, valid, test)
     train_images, valid_images, test_images, num_classes = helper.load_data(DATA_DIR)
     print("len: train_images {}, valid_images {}, test_images {}".format(len(train_images), len(valid_images), len(test_images)))
@@ -311,4 +312,3 @@ def run():
 
 if __name__ == '__main__':
     run()
-    #OnlyOutput()

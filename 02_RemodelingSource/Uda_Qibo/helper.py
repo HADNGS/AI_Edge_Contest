@@ -21,7 +21,24 @@ label_defs = [
     Label('car',           (  0,   0, 255)),
     Label('pedestrian',    (255,   0,   0)),
     Label('signal',        (255, 255,   0)),
-    Label('lane',          ( 69,  47, 142))]
+    Label('lane',          ( 69,  47, 142)),
+    
+    #Add
+    Label('sidewalk',      (  0, 255, 255)),
+    Label('building',      (  0, 203, 151)),
+    Label('wall',          ( 92, 136, 125)),
+    Label('fence',         (215,   0, 255)),
+    Label('pole',          (180, 131, 135)),
+    Label('trafficsign',   (255, 134,   0)),
+    Label('vegetation',    ( 85, 255,  50)),
+    Label('terrain',       (136,  45,  66)),
+    Label('sky',           (  0, 152, 225)),
+    Label('rider',         ( 86,  62,  67)),
+    Label('truck',         (180,   0, 129)),
+    Label('bus',           (193, 214,   0)),
+    Label('train',         (255, 121, 166)),
+    Label('motorcycle',    ( 65, 166,   1)),
+    Label('bicycle',       (208, 149,   1))]
 
 label_colors = {i: np.array(l.color) for i, l in enumerate(label_defs)}
 
@@ -55,19 +72,18 @@ def load_data(data_folder):
     
     num_classes = len(label_defs)
 
-
     return train_images, valid_images, test_images, num_classes
 
 
 
 
-def bc_img(img, s=1.0, m=0.0):
-    img = img.astype(np.int)
-    img = img * s + m
-    img[img > 255] = 255
-    img[img < 0] = 0
-    img = img.astype(np.uint8)
-    return img
+#def bc_img(img, s=1.0, m=0.0):
+#    img = img.astype(np.int)
+#    img = img * s + m
+#    img[img > 255] = 255
+#    img[img < 0] = 0
+#    img = img.astype(np.uint8)
+#    return img
 
 
 def gen_batch_function(image_list, image_shape):
@@ -96,10 +112,10 @@ def gen_batch_function(image_list, image_shape):
                 image = scipy.misc.imresize(scipy.misc.imread(image_file), image_shape)
                 gt_image = scipy.misc.imresize(scipy.misc.imread(gt_file), image_shape)
 
-                # add random noises
-                contrast = random.uniform(0.85, 1.15)  # Contrast augmentation
-                bright = random.randint(-45, 30)  # Brightness augmentation
-                image = bc_img(image, contrast, bright)
+                ## add random noises
+                #contrast = random.uniform(0.85, 1.15)  # Contrast augmentation
+                #bright = random.randint(-45, 30)  # Brightness augmentation
+                #image = bc_img(image, contrast, bright)
                 
                 gt_bg = np.zeros([image_shape[0], image_shape[1]], dtype=bool)
                 gt_list = []
