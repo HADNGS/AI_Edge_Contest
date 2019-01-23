@@ -49,7 +49,7 @@ def splitPic(inPATH_Pic,outPATH_Pic):
 
 if __name__ == '__main__':
 
-    inPATH_Pic=r"E:\Github\_Dataset\03_seg_test_images"
-    outPATH_Pic=r"E:\Github\_newDataset\03_seg_test_images/"
+    inPATH_Pic=r"D:\Github_Project\_DATA\seg_train_annotations"
+    outPATH_Pic=r"D:\Github_Project\AI_Edge_Contest\02_RemodelingSource\Uda_Qibo\data\seg_annotations_train/"
 
     splitPic(inPATH_Pic,outPATH_Pic)

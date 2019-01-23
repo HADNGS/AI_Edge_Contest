@@ -29,7 +29,7 @@ TEST_SUBDIR = 'seg_images_test'
 VGG_DIR = './data'      # this setting is for udacity workspace
 
 EPOCHS = 1
-BATCH_SIZE = 10
+BATCH_SIZE = 4
 IMAGE_SHAPE = (320, 480)    # AI contest dataset uses 1216x1936 images
 FL_resume = False
 
@@ -260,8 +260,12 @@ def run():
     learning_rate = tf.placeholder(tf.float32)
     # learning rate
     lr = LEARNING_RATE
+
+    #Solve ran out of gpu memory
+    config = tf.ConfigProto()
+    config.gpu_options.allow_growth = True
             
-    with tf.Session() as sess:
+    with tf.Session(config=config) as sess:
         # Build NN using load_vgg, layers, and optimize function
         input_image, keep_prob, layer3_out, layer4_out, layer7_out = load_vgg(sess, vgg_path)
         nn_last_layer = layers(layer3_out, layer4_out, layer7_out, num_classes)

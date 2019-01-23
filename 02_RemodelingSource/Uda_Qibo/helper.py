@@ -109,8 +109,8 @@ def gen_batch_function(image_list, image_shape):
                 # read image and groundtruth files
                 image_file = f[0]
                 gt_file = f[1]
-                image = scipy.misc.imresize(scipy.misc.imread(image_file), image_shape)
-                gt_image = scipy.misc.imresize(scipy.misc.imread(gt_file), image_shape)
+                image = scipy.misc.imread(image_file)
+                gt_image = scipy.misc.imread(gt_file)
 
                 ## add random noises
                 #contrast = random.uniform(0.85, 1.15)  # Contrast augmentation
@@ -146,7 +146,7 @@ def gen_test_output(sess, logits, keep_prob, image_pl, image_files, image_shape)
     :return: Output for for each test image
     """
     for image_file in image_files:
-        image = scipy.misc.imresize(scipy.misc.imread(image_file), image_shape)
+        image = scipy.misc.imread(image_file)
 
         im_softmax = sess.run(
             [tf.argmax(tf.nn.softmax(logits), axis=-1)],
