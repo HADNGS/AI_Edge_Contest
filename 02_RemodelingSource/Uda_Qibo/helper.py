@@ -146,7 +146,7 @@ def gen_test_output(sess, logits, keep_prob, image_pl, image_files, image_shape)
     :return: Output for for each test image
     """
     for image_file in image_files:
-        image = scipy.misc.imread(image_file)
+        image = scipy.misc.imresize(scipy.misc.imread(image_file), image_shape)
 
         im_softmax = sess.run(
             [tf.argmax(tf.nn.softmax(logits), axis=-1)],

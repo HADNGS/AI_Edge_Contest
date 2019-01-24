@@ -5,6 +5,7 @@ import helper
 import warnings
 import math
 from glob import glob
+import decimal
 
 from timeit import default_timer as timer
 
@@ -28,10 +29,10 @@ TRAIN_GT_SUBDIR = 'seg_annotations_train'
 TEST_SUBDIR = 'seg_images_test'
 VGG_DIR = './data'      # this setting is for udacity workspace
 
-EPOCHS = 1
-BATCH_SIZE = 4
+EPOCHS = 2
+BATCH_SIZE = 10
 IMAGE_SHAPE = (320, 480)    # AI contest dataset uses 1216x1936 images
-FL_resume = False
+FL_resume = True
 
 
 def load_vgg(sess, vgg_path):
@@ -156,7 +157,7 @@ def optimize(nn_last_layer, correct_label, learning_rate, num_classes):
 
 
 def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_valid_batches_fn, train_op, cross_entropy_loss,
-             input_image, correct_label, keep_prob, learning_rate, iou, iou_op, saver, n_train, n_valid, lr):
+             input_image, correct_label, keep_prob, learning_rate, iou, iou_op, saver, n_train, n_valid, lr, FL_resume):
     """
     Train neural network and print out the loss during training.
     :param sess: TF Session
@@ -171,12 +172,26 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_valid_batches_f
     :param learning_rate: TF Placeholder for learning rate
     """
     print("Start training with lr {} ...".format(lr))
-    best_iou = 0
+    
     for epoch in range(epochs):
         # train process
         start = timer()
         losses = []
         ious = []
+
+        #Get best_iou
+        if FL_resume:
+            if os.path.isfile(os.path.join(MODELS, 'training.txt')):
+                with open(os.path.join(MODELS, 'training.txt')) as f:
+                    first_line = f.readline()
+                    best_iou=decimal.Decimal(first_line.split(None)[-1])
+            else:
+                exit("training.txt is not exists.")
+        else:
+            best_iou=0
+
+        i=1
+        img_i=0
 
         description = "Train Epoch {:>2}/{}".format(epoch+1,epochs)
         print(description)
@@ -185,10 +200,18 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_valid_batches_f
             _, loss, _ = sess.run([train_op, cross_entropy_loss, iou_op],
                                 feed_dict={input_image: image, correct_label: label,
                                             keep_prob: KEEP_PROB, learning_rate: lr})
-            print("Loss = {:.3f}".format(loss))
+            
+            # Show a message 20 rounds each.
+            if i==20:
+                img_i+=i
+                print("["+str(img_i*batch_size)+" Pic Done]     Loss = {:.3f}".format(loss))
+                i=0
+            i+=1
+            
             losses.append(loss)
             ious.append(sess.run(iou))
 
+        img_total=img_i
         end = timer()
         # save figure of loss
         #helper.plot_loss(RUNS_DIR, losses, "loss_graph_training")
@@ -203,10 +226,22 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_valid_batches_f
         losses = []
         ious = []
 
+        i=1
+        img_i=0
+
+        print("Validation process ...")
+
         for image, label in get_valid_batches_fn(batch_size):
             loss, _ = sess.run([cross_entropy_loss, iou_op],
                                 feed_dict={input_image: image, correct_label: label, keep_prob: 1})
-            print("Loss = {:.3f}".format(loss))
+
+            # Show a message 20 rounds each.
+            if i==20:
+                img_i+=i
+                print("["+str(img_i*batch_size)+" Pic Done]     Loss = {:.3f}".format(loss))
+                i=0
+            i+=1
+
             losses.append(loss)
             ious.append(sess.run(iou))
         end = timer()
@@ -218,12 +253,19 @@ def train_nn(sess, epochs, batch_size, get_train_batches_fn, get_valid_batches_f
         print("  Valid IOU = {:.4f}".format(valid_iou))
 
 
+
+
         # check the result
         if (valid_iou > best_iou):
             saver.save(sess, os.path.join(MODELS, 'fcn8s'))
-            #saver.save(sess, os.path.join(MODELS, 'fcn8s.ckpt'))
-            with open(os.path.join(MODELS, 'training.txt'), "w") as text_file:
-                text_file.write("models/fcn8s: epoch {}, lr {}, valid_iou {}".format(epoch + 1, lr, valid_iou))
+            
+            if os.path.isfile(os.path.join(MODELS, 'training.txt')):
+                with open(os.path.join(MODELS, 'training.txt'), "a") as text_file:
+                    text_file.write("\n"+"models/fcn8s: Pic {}, epoch {}, lr {}, valid_iou {}".format(str(img_i*batch_size), epoch + 1, lr, valid_iou))
+            else:
+                with open(os.path.join(MODELS, 'training.txt'), "w") as text_file:
+                    text_file.write("models/fcn8s: Pic {}, epoch {}, lr {}, valid_iou {}".format(str(img_i*batch_size), epoch + 1, lr, valid_iou))
+
             print("  model saved")
             best_iou = valid_iou
         else:
@@ -288,18 +330,13 @@ def run():
         n_train = int(math.ceil(len(train_images) / BATCH_SIZE))
         n_valid = int(math.ceil(len(valid_images) / BATCH_SIZE))
         train_nn(sess, EPOCHS, BATCH_SIZE, get_train_batches_fn, get_valid_batches_fn, train_op, cross_entropy_loss,
-                 input_image, correct_label, keep_prob, learning_rate, iou, iou_op, saver, n_train, n_valid, lr)
+                 input_image, correct_label, keep_prob, learning_rate, iou, iou_op, saver, n_train, n_valid, lr, FL_resume)
 
         # Test process
         #n_batches = int(math.ceil(len(test_images) / BATCH_SIZE))
         # batch_size 32 is ok (and faster) with GTX 1080 TI and 11 GB memory
         #test_nn(sess, 32, get_test_batches_fn, predictions_argmax, input_image,
         #       correct_label, keep_prob, iou, iou_op, n_batches)
-
-
-        # Save inference data using helper.save_inference_samples
-        inference_images = glob(os.path.join(DATA_DIR, TEST_SUBDIR, '*.jpg'))
-        helper.save_inference_samples(RUNS_DIR, inference_images, sess, IMAGE_SHAPE, logits, keep_prob, input_image)
 
         # save model
         output_node_names = 'Softmax'
@@ -313,6 +350,12 @@ def run():
         tf.train.write_graph(tf.get_default_graph().as_graph_def(), '',  os.path.join(MODELS, 'optimized', 'base_graph.pb'), False)
         tf.train.write_graph(output_graph_def, '', os.path.join(MODELS, 'optimized' 'frozen_graph.pb'), False)
         print("{} ops in the final graph.".format(len(output_graph_def.node)))
+
+        # Save inference data using helper.save_inference_samples
+        inference_images = glob(os.path.join(DATA_DIR, TEST_SUBDIR, '*.jpg'))
+        helper.save_inference_samples(RUNS_DIR, inference_images, sess, IMAGE_SHAPE, logits, keep_prob, input_image)
+
+        print("All Done!")
 
 if __name__ == '__main__':
     run()

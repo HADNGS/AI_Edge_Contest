@@ -1,4 +1,4 @@
-PATH_img=["a"]
-
-if not PATH_img:
-    print("List is empty")
+side=8
+for side_one in range(1,side+1):
+    print(side_one)
+    
